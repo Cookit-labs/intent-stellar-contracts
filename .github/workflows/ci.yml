@@ -38,8 +38,12 @@ jobs:
       - name: Test
         run: cargo test --workspace
 
+      # Installed from the release binary rather than built from source:
+      # cargo install pulls a dependency chain that no longer compiles on
+      # current Rust, and building the CLI is several minutes of CI time for a
+      # tool we only invoke once.
       - name: Install Stellar CLI
-        run: cargo install --locked stellar-cli --version 23.1.4
+        uses: stellar/stellar-cli@main
 
       # Tests run natively, which proves the logic but not that the contract
       # can be deployed. Building to WASM is what catches a contract that
