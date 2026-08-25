@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = ["contracts/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Cookit-labs/intent-stellar-contracts"
+
+[workspace.dependencies]
+soroban-sdk = "23"
+
+[profile.release]
+# Soroban charges for bytecode size, so optimise hard and strip everything the
+# contract does not need at runtime.
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
