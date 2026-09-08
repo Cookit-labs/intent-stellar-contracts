@@ -7,8 +7,8 @@ The Stellar counterpart to
 [intent-core-contracts](https://github.com/Cookit-labs/intent-core-contracts),
 which targets Arc. Same security model, different platform.
 
-**Status:** escrow, settlement, and the agent registry are implemented and
-tested. Nothing is deployed yet.
+**Status:** escrow, settlement, and the agent registry are implemented, tested,
+and deployed to Stellar testnet.
 
 ## Why this exists
 
@@ -19,6 +19,34 @@ violating execution reverts.
 
 Intent runs on multiple chains, with one backend coordinating them. The chain
 layer is what differs; the auction, scoring, and reputation are shared.
+
+## Deployed contracts
+
+Stellar testnet. Machine-readable copy in [`deployments/testnet.json`](deployments/testnet.json).
+
+| Contract | Id |
+|----------|-----|
+| Escrow | `CBQSLZJWLIWTDVQ2KA2CTVBTHIPQS5XNSDZIIU7HG6MEYX2N6O6IXRH3` |
+| Settlement | `CAEJRTJHXNTFG3JEW3H72BQZEIYX5EHEGZTXGX576V6U6KGPL4RG4FAR` |
+| Registry | `CBSEAQ75OOJ6I6Q7JK2JSIQOUOCHAZEEJLN4EUZDEPK2DQA5EBDAWYCJ` |
+
+Network passphrase: `Test SDF Network ; September 2015`
+
+The deployment file records a **WASM hash per contract**. A contract id says
+which address to call, not which code answers; with the hash, a deployment can
+be verified against this source rather than trusted.
+
+Redeploying:
+
+```bash
+./scripts/deploy.sh testnet deployer
+```
+
+**SDF resets testnet periodically**, and every id above becomes invalid when it
+happens. Re-running the script is the recovery path — that is why deployment is
+a script rather than a list of commands in a README. Each contract binds to its
+counterparties once and cannot be repointed, so all three must be redeployed
+together.
 
 ## The asset, and trustlines
 
