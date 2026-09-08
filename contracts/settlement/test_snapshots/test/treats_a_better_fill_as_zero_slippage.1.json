@@ -1092,18 +1092,38 @@
               }
             ],
             "data": {
-              "vec": [
+              "map": [
                 {
-                  "string": "intent_1"
+                  "key": {
+                    "symbol": "amount_in"
+                  },
+                  "val": {
+                    "i128": "5000000000"
+                  }
                 },
                 {
-                  "i128": "5000000000"
+                  "key": {
+                    "symbol": "amount_out"
+                  },
+                  "val": {
+                    "i128": "2000000000"
+                  }
                 },
                 {
-                  "i128": "2000000000"
+                  "key": {
+                    "symbol": "intent_id"
+                  },
+                  "val": {
+                    "string": "intent_1"
+                  }
                 },
                 {
-                  "u32": 0
+                  "key": {
+                    "symbol": "slippage_bps"
+                  },
+                  "val": {
+                    "u32": 0
+                  }
                 }
               ]
             }

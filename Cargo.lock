@@ -848,6 +848,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "intent-registry"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "intent-settlement"
 version = "0.1.0"
 dependencies = [

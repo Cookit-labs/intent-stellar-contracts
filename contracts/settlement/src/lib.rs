@@ -20,7 +20,7 @@
 //!   is archived takes the reputation history with it.
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, Address, Env, String, Symbol,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, Env, String,
 };
 
 /// Ledgers per day at Stellar's roughly 5 second close time.
@@ -93,6 +93,21 @@ pub enum Error {
     SettlementNotFound = 8,
     /// `expected_out` was zero or negative, so slippage cannot be derived.
     InvalidExpectedOut = 9,
+}
+
+/// Emitted on every settlement.
+///
+/// Carries everything needed to reconstruct the outcome off-chain, so an
+/// indexer never has to read contract storage to build history.
+#[contractevent]
+#[derive(Clone, Debug, PartialEq)]
+pub struct Settled {
+    #[topic]
+    pub agent: Address,
+    pub intent_id: String,
+    pub amount_in: i128,
+    pub amount_out: i128,
+    pub slippage_bps: u32,
 }
 
 #[contract]
@@ -196,17 +211,14 @@ impl SettlementManager {
             &report.amount_in,
         );
 
-        // Carries everything needed to reconstruct the settlement off-chain,
-        // so an indexer never has to read contract storage to build history.
-        env.events().publish(
-            (Symbol::new(&env, "settled"), report.agent.clone()),
-            (
-                intent_id,
-                report.amount_in,
-                report.amount_out,
-                slippage_bps,
-            ),
-        );
+        Settled {
+            agent: report.agent,
+            intent_id,
+            amount_in: report.amount_in,
+            amount_out: report.amount_out,
+            slippage_bps,
+        }
+        .publish(&env);
 
         Ok(slippage_bps)
     }
@@ -259,6 +271,9 @@ mod escrow_client {
     /// Declared here rather than importing the escrow crate so that settlement
     /// does not carry the escrow's implementation into its own WASM — Soroban
     /// charges for bytecode size.
+    // The trait itself is never called; it exists so the macro can generate
+    // `Client`, which is.
+    #[allow(dead_code)]
     #[contractclient(name = "Client")]
     pub trait Escrow {
         fn release(env: Env, intent_id: String, destination: Address, amount: i128);
