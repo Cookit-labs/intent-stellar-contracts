@@ -101,9 +101,13 @@ fn settles_a_clean_execution_and_pays_the_destination() {
     let id = f.fund("intent_1");
 
     let before = f.token.balance(&f.destination);
-    let slippage = f
-        .settlement
-        .settle(&id, &f.report(EXPECTED_OUT), &MAX_SLIPPAGE_BPS, &f.deadline, &AMOUNT);
+    let slippage = f.settlement.settle(
+        &id,
+        &f.report(EXPECTED_OUT),
+        &MAX_SLIPPAGE_BPS,
+        &f.deadline,
+        &AMOUNT,
+    );
 
     assert_eq!(slippage, 0, "a fill at the expected price has no slippage");
     assert_eq!(
@@ -117,8 +121,13 @@ fn settles_a_clean_execution_and_pays_the_destination() {
 fn records_the_outcome_for_reputation() {
     let f = setup();
     let id = f.fund("intent_1");
-    f.settlement
-        .settle(&id, &f.report(EXPECTED_OUT), &MAX_SLIPPAGE_BPS, &f.deadline, &AMOUNT);
+    f.settlement.settle(
+        &id,
+        &f.report(EXPECTED_OUT),
+        &MAX_SLIPPAGE_BPS,
+        &f.deadline,
+        &AMOUNT,
+    );
 
     let record = f.settlement.get_settlement(&id);
     assert_eq!(record.agent, f.agent);
@@ -134,9 +143,13 @@ fn derives_slippage_rather_than_trusting_the_agent() {
 
     // 1% short of the expected fill.
     let delivered = EXPECTED_OUT - EXPECTED_OUT / 100;
-    let slippage = f
-        .settlement
-        .settle(&id, &f.report(delivered), &MAX_SLIPPAGE_BPS, &f.deadline, &AMOUNT);
+    let slippage = f.settlement.settle(
+        &id,
+        &f.report(delivered),
+        &MAX_SLIPPAGE_BPS,
+        &f.deadline,
+        &AMOUNT,
+    );
 
     assert_eq!(slippage, 100, "a 1% shortfall is 100 bps");
 }
@@ -148,9 +161,13 @@ fn rejects_an_execution_worse_than_the_tolerance() {
 
     // 5% short against a 1% tolerance.
     let delivered = EXPECTED_OUT - EXPECTED_OUT / 20;
-    let result =
-        f.settlement
-            .try_settle(&id, &f.report(delivered), &MAX_SLIPPAGE_BPS, &f.deadline, &AMOUNT);
+    let result = f.settlement.try_settle(
+        &id,
+        &f.report(delivered),
+        &MAX_SLIPPAGE_BPS,
+        &f.deadline,
+        &AMOUNT,
+    );
 
     assert_eq!(result, Err(Ok(Error::SlippageExceeded)));
 }
@@ -176,12 +193,21 @@ fn treats_a_better_fill_as_zero_slippage() {
 fn refuses_to_settle_the_same_intent_twice() {
     let f = setup();
     let id = f.fund("intent_1");
-    f.settlement
-        .settle(&id, &f.report(EXPECTED_OUT), &MAX_SLIPPAGE_BPS, &f.deadline, &AMOUNT);
+    f.settlement.settle(
+        &id,
+        &f.report(EXPECTED_OUT),
+        &MAX_SLIPPAGE_BPS,
+        &f.deadline,
+        &AMOUNT,
+    );
 
-    let again =
-        f.settlement
-            .try_settle(&id, &f.report(EXPECTED_OUT), &MAX_SLIPPAGE_BPS, &f.deadline, &AMOUNT);
+    let again = f.settlement.try_settle(
+        &id,
+        &f.report(EXPECTED_OUT),
+        &MAX_SLIPPAGE_BPS,
+        &f.deadline,
+        &AMOUNT,
+    );
 
     assert_eq!(again, Err(Ok(Error::AlreadySettled)));
 }
@@ -208,9 +234,13 @@ fn rejects_an_execution_reported_after_the_deadline() {
 
     f.env.ledger().with_mut(|l| l.timestamp += ONE_HOUR * 2);
 
-    let result =
-        f.settlement
-            .try_settle(&id, &f.report(EXPECTED_OUT), &MAX_SLIPPAGE_BPS, &f.deadline, &AMOUNT);
+    let result = f.settlement.try_settle(
+        &id,
+        &f.report(EXPECTED_OUT),
+        &MAX_SLIPPAGE_BPS,
+        &f.deadline,
+        &AMOUNT,
+    );
 
     assert_eq!(result, Err(Ok(Error::DeadlinePassed)));
 }
@@ -253,9 +283,13 @@ fn does_not_round_small_shortfalls_away() {
 
     // 0.1% short. Dividing before scaling would report this as zero.
     let delivered = EXPECTED_OUT - EXPECTED_OUT / 1000;
-    let slippage = f
-        .settlement
-        .settle(&id, &f.report(delivered), &MAX_SLIPPAGE_BPS, &f.deadline, &AMOUNT);
+    let slippage = f.settlement.settle(
+        &id,
+        &f.report(delivered),
+        &MAX_SLIPPAGE_BPS,
+        &f.deadline,
+        &AMOUNT,
+    );
 
     assert_eq!(slippage, 10, "0.1% is 10 bps");
 }

@@ -157,9 +157,11 @@ impl AgentRegistry {
         };
         let rep_key = DataKey::Reputation(agent.clone());
         env.storage().persistent().set(&rep_key, &reputation);
-        env.storage()
-            .persistent()
-            .extend_ttl(&rep_key, TTL_THRESHOLD_LEDGERS, TTL_EXTENSION_LEDGERS);
+        env.storage().persistent().extend_ttl(
+            &rep_key,
+            TTL_THRESHOLD_LEDGERS,
+            TTL_EXTENSION_LEDGERS,
+        );
 
         let mut roster: Vec<Address> = env
             .storage()

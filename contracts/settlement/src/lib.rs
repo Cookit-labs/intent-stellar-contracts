@@ -126,7 +126,9 @@ impl SettlementManager {
             return Err(Error::AlreadyInitialised);
         }
         env.storage().instance().set(&DataKey::Escrow, &escrow);
-        env.storage().instance().set(&DataKey::Validator, &validator);
+        env.storage()
+            .instance()
+            .set(&DataKey::Validator, &validator);
         Ok(())
     }
 

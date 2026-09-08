@@ -159,11 +159,7 @@ impl IntentEscrow {
             return Err(Error::InsufficientBalance);
         }
 
-        client.transfer(
-            &depositor,
-            env.current_contract_address(),
-            &amount,
-        );
+        client.transfer(&depositor, env.current_contract_address(), &amount);
 
         let intent = Intent {
             depositor,
