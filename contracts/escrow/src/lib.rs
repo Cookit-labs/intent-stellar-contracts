@@ -88,6 +88,14 @@ pub enum Error {
     IntentAlreadyExists = 6,
     IntentNotFunded = 7,
     AmountExceedsEscrow = 8,
+    /// The depositor holds less of the token than they are trying to deposit.
+    /// On Stellar this is usually a missing trustline rather than an empty
+    /// balance: without one an account cannot hold the asset at all, so its
+    /// balance reads zero even for a user who believes they own some.
+    InsufficientBalance = 9,
+    /// The escrow cannot receive the asset. It has no trustline of its own, or
+    /// the issuer has not authorised it.
+    EscrowCannotHoldAsset = 10,
 }
 
 #[contract]
@@ -139,7 +147,19 @@ impl IntentEscrow {
             return Err(Error::IntentAlreadyExists);
         }
 
-        token::Client::new(&env, &token).transfer(
+        // Checked before the transfer so the failure is a typed error rather
+        // than a panic from deep inside the token contract. USDC on Stellar is
+        // an issued asset: holding it requires a trustline to the issuer, and
+        // an account without one reads as a zero balance rather than as an
+        // explicit "cannot hold this". Reporting that distinctly is what lets
+        // the dapp offer to create the trustline instead of showing a failure
+        // the user cannot act on.
+        let client = token::Client::new(&env, &token);
+        if client.balance(&depositor) < amount {
+            return Err(Error::InsufficientBalance);
+        }
+
+        client.transfer(
             &depositor,
             env.current_contract_address(),
             &amount,
@@ -240,6 +260,19 @@ impl IntentEscrow {
         );
 
         Ok(())
+    }
+
+    /// Whether an account can currently hold enough of a token to deposit.
+    ///
+    /// Exists so the dapp can tell a user *why* a deposit will fail before
+    /// asking them to sign it. On Stellar the common cause is a missing
+    /// trustline, which is fixable in one transaction — but only if the user is
+    /// told that rather than shown a bare rejection.
+    pub fn can_deposit(env: Env, token: Address, account: Address, amount: i128) -> bool {
+        if amount <= 0 {
+            return false;
+        }
+        token::Client::new(&env, &token).balance(&account) >= amount
     }
 
     /// Read an intent, including the constraints settlement must enforce.

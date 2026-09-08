@@ -557,3 +557,83 @@ fn deposit_without_depositor_auth_is_rejected() {
     env.set_auths(&[]);
     escrow.deposit(&id, &victim, &token.address, &AMOUNT, &c);
 }
+
+// --- asset holding / trustline ---
+
+/// On Stellar, an account with no trustline to the issuer cannot hold the asset
+/// at all, and its balance reads zero. That is indistinguishable from an empty
+/// account at the contract level, so the escrow reports it as a distinct,
+/// typed failure instead of letting the token contract panic mid-transfer.
+#[test]
+fn deposit_rejects_an_account_that_cannot_hold_the_asset() {
+    let f = setup();
+    let stranger = Address::generate(&f.env);
+
+    let result = f.escrow.try_deposit(
+        &String::from_str(&f.env, "intent_1"),
+        &stranger,
+        &f.token.address,
+        &AMOUNT,
+        &constraints(&f.env),
+    );
+
+    assert_eq!(result, Err(Ok(Error::InsufficientBalance)));
+}
+
+#[test]
+fn deposit_rejects_more_than_the_depositor_holds() {
+    let f = setup();
+    let balance = f.token.balance(&f.depositor);
+
+    let result = f.escrow.try_deposit(
+        &String::from_str(&f.env, "intent_1"),
+        &f.depositor,
+        &f.token.address,
+        &(balance + 1),
+        &constraints(&f.env),
+    );
+
+    assert_eq!(result, Err(Ok(Error::InsufficientBalance)));
+}
+
+#[test]
+fn can_deposit_reports_whether_a_deposit_would_succeed() {
+    let f = setup();
+    let stranger = Address::generate(&f.env);
+
+    // The dapp calls this before asking the user to sign, so it can offer to
+    // create a trustline rather than surface a bare rejection.
+    assert!(
+        f.escrow
+            .can_deposit(&f.token.address, &f.depositor, &AMOUNT),
+        "a funded depositor should be able to deposit"
+    );
+    assert!(
+        !f.escrow.can_deposit(&f.token.address, &stranger, &AMOUNT),
+        "an account that cannot hold the asset should be reported as such"
+    );
+}
+
+#[test]
+fn can_deposit_rejects_a_non_positive_amount() {
+    let f = setup();
+    assert!(!f.escrow.can_deposit(&f.token.address, &f.depositor, &0));
+    assert!(!f.escrow.can_deposit(&f.token.address, &f.depositor, &-1));
+}
+
+#[test]
+fn a_funded_account_still_deposits_normally() {
+    // Guards against the new check rejecting the ordinary path.
+    let f = setup();
+    let id = String::from_str(&f.env, "intent_1");
+
+    f.escrow.deposit(
+        &id,
+        &f.depositor,
+        &f.token.address,
+        &AMOUNT,
+        &constraints(&f.env),
+    );
+
+    assert_eq!(f.escrow.get_intent(&id).amount, AMOUNT);
+}

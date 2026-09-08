@@ -7,8 +7,8 @@ The Stellar counterpart to
 [intent-core-contracts](https://github.com/Cookit-labs/intent-core-contracts),
 which targets Arc. Same security model, different platform.
 
-**Status:** escrow implemented and tested. Settlement is not written yet.
-Nothing is deployed.
+**Status:** escrow, settlement, and the agent registry are implemented and
+tested. Nothing is deployed yet.
 
 ## Why this exists
 
@@ -19,6 +19,37 @@ violating execution reverts.
 
 Intent runs on multiple chains, with one backend coordinating them. The chain
 layer is what differs; the auction, scoring, and reputation are shared.
+
+## The asset, and trustlines
+
+The escrow is asset-agnostic: `deposit` takes a token contract address, so it
+works with any Stellar Asset Contract. In practice that is **USDC**, and on
+Stellar USDC is an *issued asset*, not a native balance.
+
+That distinction has no Arc equivalent and is the single biggest semantic
+difference between the two chains:
+
+- **Holding USDC requires a trustline to the issuer.** An account without one
+  cannot hold the asset at all, and its balance reads as zero — which at the
+  contract level is indistinguishable from an account that simply has none.
+- Circle's testnet issuer is
+  `GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5` (home domain
+  `centre.io`). Testnet carries many unrelated self-issued assets also coded
+  `USDC`, so **pin the issuer** — a test against the wrong one proves nothing.
+- XLM is native and needs no trustline. It pays fees and reserves.
+
+The escrow checks the depositor's balance before attempting the transfer, so a
+missing trustline surfaces as a typed `InsufficientBalance` rather than a panic
+from inside the token contract. `can_deposit` exposes the same check as a
+read-only call, so the dapp can tell a user *why* a deposit would fail and offer
+to create the trustline — a one-transaction fix, but only if the user is told
+rather than shown a bare rejection.
+
+**What is not enforced on-chain:** issuer authorisation flags. If an issuer
+enables `AUTH_REQUIRED` and has not authorised the escrow, a transfer fails
+inside the token contract. The Soroban test harness offers no way to enable that
+flag on a locally registered asset, so it cannot be covered by a test here and
+is deliberately left to integration testing against a real network.
 
 ## Setup
 
